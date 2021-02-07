@@ -43,7 +43,7 @@ def main():
         get_address("Vault Registry", default="v2.registry.ychad.eth")
     )
 
-    latest_release = Version(registry.latestRelease())
+    latest_release = Version("0.0.0")  # Version(registry.latestRelease())
     use_proxy = False  # NOTE: Use a proxy to save on gas for experimental Vaults
     if Version(PACKAGE_VERSION) < latest_release:
         click.echo("Cannot deploy Vault for old API version")
@@ -55,6 +55,7 @@ def main():
         if not click.confirm("Deploy Experimental Vault"):
             return
         use_proxy = True
+    publish_source = click.confirm("Verify source on etherscan?")
 
     token = Token.at(get_address("ERC20 Token"))
 
@@ -99,13 +100,15 @@ def main():
             args.insert(2, guardian)
             txn_receipt = registry.newExperimentalVault(*args, {"from": dev})
             vault = Vault.at(txn_receipt.events["NewExperimentalVault"]["vault"])
+            if publish_source:
+                Vault.publish_source(vault)
             click.echo(f"Experimental Vault deployed [{vault.address}]")
             click.echo("    NOTE: Vault is not registered in Registry!")
         else:
             if guardian != dev.address:
                 # NOTE: Only need to include if guardian is not self
                 args.append(guardian)
-            vault = dev.deploy(Vault)
+            vault = dev.deploy(Vault, publish_source=publish_source)
             vault.initialize(*args)
             click.echo(f"New Vault Release deployed [{vault.address}]")
             click.echo(
