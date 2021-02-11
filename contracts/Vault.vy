@@ -871,14 +871,9 @@ def _shareValue(shares: uint256) -> uint256:
         # NOTE: if sqrt(Vault.totalAssets()) >>> 1e39, this could potentially revert
     lockedFundsRatio: uint256 = (block.timestamp - self.lastReport) * self.lockedProfitDegration
     freeFunds: uint256 = self._totalAssets()
-<<<<<<< HEAD
+
     if(lockedFundsRatio < DEGREDATION_COEFFICIENT):
         freeFunds -= (self.lockedProfit - (lockedFundsRatio * self.lockedProfit / DEGREDATION_COEFFICIENT))
-=======
-    if(lockedFundsRatio < convert(1e18, uint256)):
-        freeFunds = freeFunds - (self.lockedProfit - (lockedFundsRatio * self.lockedProfit / convert(1e18, uint256)))
->>>>>>> 7fa51eaa25a454d5865b61a79b7f491eb43d1865
-
     return (shares * freeFunds) / self.totalSupply
 
     
