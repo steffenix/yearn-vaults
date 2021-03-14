@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.2;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import {VaultAPI, BaseWrapper} from "./BaseWrapper.sol";
 
 contract yToken is IERC20, BaseWrapper {
-    using SafeMath for uint256;
-
     mapping(address => mapping(address => uint256)) public override allowance;
 
-    constructor(address _token, address _registry) public BaseWrapper(_token, _registry) {}
+    constructor(address _token, address _registry) BaseWrapper(_token, _registry) {}
 
     function name() external view returns (string memory) {
         VaultAPI _bestVault = bestVault();
@@ -76,17 +72,17 @@ contract yToken is IERC20, BaseWrapper {
         uint256 amount
     ) public virtual override returns (bool) {
         _transfer(sender, receiver, amount);
-        _approve(sender, msg.sender, allowance[sender][msg.sender].sub(amount));
+        _approve(sender, msg.sender, allowance[sender][msg.sender] - amount);
         return true;
     }
 
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, allowance[msg.sender][spender].add(addedValue));
+        _approve(msg.sender, spender, allowance[msg.sender][spender] + addedValue);
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, allowance[msg.sender][spender].sub(subtractedValue));
+        _approve(msg.sender, spender, allowance[msg.sender][spender] - subtractedValue);
         return true;
     }
 
@@ -105,7 +101,7 @@ contract yToken is IERC20, BaseWrapper {
     ) internal {
         require(vaults.length == signatures.length);
         for (uint256 i = 0; i < vaults.length; i++) {
-            require(vaults[i].permit(user, address(this), uint256(-1), 0, signatures[i]));
+            require(vaults[i].permit(user, address(this), type(uint256).max, 0, signatures[i]));
         }
     }
 
@@ -166,7 +162,7 @@ interface IWETH {
 contract yWETH is yToken {
     using Address for address payable;
 
-    constructor(address _weth, address _registry) public yToken(_weth, _registry) {}
+    constructor(address _weth, address _registry) yToken(_weth, _registry) {}
 
     function depositETH() public payable returns (uint256) {
         uint256 amount = msg.value;
@@ -183,7 +179,7 @@ contract yWETH is yToken {
         // NOTE: `BaseWrapper.token` is WETH
         IWETH(address(token)).withdraw(withdrawn);
         // NOTE: Any unintentionally
-        msg.sender.sendValue(address(this).balance);
+        payable(msg.sender).sendValue(address(this).balance);
     }
 
     receive() external payable {
